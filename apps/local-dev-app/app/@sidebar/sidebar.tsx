@@ -20,17 +20,18 @@ export default async function Sidebar({ params }: { params?: { domainID: string 
       </div>
       <div className="mt-6 flex-1 overflow-auto">
         <ul className="grid gap-2">
-          {domains.map(({ domainID, domain, port }) => (
-            <li key={domainID}>
+          {domains.map(({ id, domain, port }) => (
+            <li key={id}>
               <Button
                 variant="outline"
                 className={cn(
                   "flex w-full items-center justify-between rounded-md px-4 py-2 text-left hover:bg-muted",
-                  params?.domainID === domainID && "border-primary border-2",
+                  // @ts-expect-error
+                  params?.domainID == id && "border-primary border-2",
                 )}
                 asChild
               >
-                <Link href={`/${domainID}`}>
+                <Link href={`/${id}`}>
                   <div className="flex items-center gap-2">
                     <GlobeIcon className="h-5 w-5 text-muted-foreground" />
                     <div>

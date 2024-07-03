@@ -11,8 +11,9 @@ export default async function NewDomain() {
 
     await createDomain({
       domain: formData.get("domain") as string,
-      port: Number(formData.get("port")),
-      notes: formData.get("notes") as string,
+      targetIP: formData.get("targetIP") as string,
+      port: Number(formData.get("port") as string),
+      note: formData.get("note") as string,
     });
   }
 
@@ -35,12 +36,16 @@ export default async function NewDomain() {
               <Input id="domain" name="domain" type="text" />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="targetIP">Target Port</Label>
+              <Input id="targetIP" name="targetIP" type="string" defaultValue="127.0.0.1" />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="port">Target Port</Label>
               <Input id="port" name="port" type="number" />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" name="notes" rows={4} />
+              <Label htmlFor="note">Notes</Label>
+              <Textarea id="note" name="note" rows={4} />
             </div>
           </div>
         </div>

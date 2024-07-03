@@ -1,59 +1,43 @@
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import type { Domain } from "../types";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 
-let sqlite = new Database("sqlite.db");
-export let db = drizzle(sqlite);
-
-type Domain = {
-  domainID: string;
-  domain: string;
-  port: number;
-  notes?: string;
-};
-
-let domains: Array<Domain> = [
-  {
-    domainID: "123",
-    domain: "foo-bar.local",
-    port: 3000,
-    notes: "This is a local development domain that proxies to port 3000.",
-  },
-  {
-    domainID: "456",
-    domain: "baz-qux.local",
-    port: 3001,
-  },
-  {
-    domainID: "789",
-    domain: "qux-quux.local",
-    port: 3002,
-  },
-];
-
-export async function loadDomains(): Promise<Array<Domain>> {
+async function loadDomainsImpl(): Promise<Array<Domain>> {
+  let domainsRes = await fetch("http://dashboard.localdev/api/list");
+  let domains = await domainsRes.json();
   return domains;
 }
 
-export async function loadDomain(domainID: string): Promise<Domain | undefined> {
-  return domains.find((domain) => domain.domainID === domainID);
+export let loadDomains = unstable_cache(loadDomainsImpl, ["domains"], { tags: ["domains"] });
+
+async function loadDomainImpl(domainID: number): Promise<Domain | undefined> {
+  let domains = await loadDomains();
+  return domains.find((domain) => domain.id === domainID);
 }
 
-export async function updateDomain(domainID: string, data: Partial<Domain>): Promise<void> {
-  let domain = domains.find((domain) => domain.domainID === domainID);
+export let loadDomain = unstable_cache(loadDomainImpl, ["domain"], { tags: ["domain"] });
 
-  if (domain) {
-    Object.assign(domain, data);
-  }
+export async function updateDomain(domainID: number, data: Partial<Domain>): Promise<void> {
+  await fetch("http://dashboard.localdev/api/update", {
+    method: "POST",
+    body: JSON.stringify({
+      id: domainID,
+      ...data,
+    }),
+  });
 
+  revalidateTag("domains");
   revalidatePath(`/${domainID}`);
 }
 
-export async function createDomain(data: Omit<Domain, "domainID">): Promise<void> {
-  domains.push({ ...data, domainID: Math.random().toString(36).slice(2) });
+export async function createDomain(data: Omit<Domain, "id">): Promise<void> {
+  await fetch("http://dashboard.localdev/api/add", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
   revalidatePath("/");
+  revalidateTag("domains");
   redirect("/");
 }

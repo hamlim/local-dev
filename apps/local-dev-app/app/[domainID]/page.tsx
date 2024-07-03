@@ -7,7 +7,7 @@ import { Textarea } from "~/components/ui/textarea";
 import { loadDomain, updateDomain } from "~/lib/dataloader";
 
 export default async function EditDomain({ params: { domainID } }: { params: { domainID: string } }) {
-  let domain = await loadDomain(domainID);
+  let domain = await loadDomain(Number(domainID));
 
   if (!domain) {
     notFound();
@@ -17,10 +17,11 @@ export default async function EditDomain({ params: { domainID } }: { params: { d
     "use server";
 
     let domain = formData.get("domain") as string;
-    let port = formData.get("port") as string;
-    let notes = formData.get("notes") as string;
+    let targetIP = formData.get("targetIP") as string;
+    let port = Number(formData.get("port") as string);
+    let note = formData.get("note") as string;
 
-    await updateDomain(domainID, { domain, port, notes });
+    await updateDomain(Number(domainID), { domain, port, note, targetIP });
   }
 
   return (
@@ -46,16 +47,20 @@ export default async function EditDomain({ params: { domainID } }: { params: { d
               <Input id="domain" name="domain" type="text" defaultValue={domain?.domain} />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="targetIP">Target IP:</Label>
+              <Input id="targetIP" name="targetIP" type="string" defaultValue={domain?.targetIP} />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="port">Target Port</Label>
               <Input id="port" name="port" type="number" defaultValue={domain?.port} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
-                id="notes"
-                name="notes"
+                id="note"
+                name="note"
                 rows={4}
-                defaultValue={domain.notes}
+                defaultValue={domain.note}
               />
             </div>
           </div>

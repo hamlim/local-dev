@@ -1,5 +1,11 @@
+import { Database } from "bun:sqlite";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+let sqlite = new Database("sqlite.db");
+export let db = drizzle(sqlite);
 
 type Domain = {
   domainID: string;

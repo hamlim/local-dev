@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1719966866680,
+      "tag": "0000_faulty_arclight",
+      "breakpoints": true
+    }
+  ]
+}

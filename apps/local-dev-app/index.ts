@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import type { Domain } from "./types";
+import { parseDSL, updateHostsFile } from "./utils";
 
 let db = new Database("./domains.db");
 
@@ -26,48 +27,34 @@ The hosts file syntax is as follows:
 ~~~
 `;
 
-export function parseDSL(input: string): Array<Domain> {
-  let lines = input.split("\n");
-  let entries: Array<Domain> = [];
-  let currentNote = "";
-  let currentID = NaN;
+type Logger = (...args: Array<any>) => void;
 
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i].trim();
+function noop() {}
 
-    if (line.startsWith("# localdev::")) {
-      currentID = parseInt(line.substring(12), 10);
-    } else if (line.startsWith("# note:")) {
-      if (currentNote.length > 0) {
-        currentNote += "\n";
-      }
-      currentNote += line.substring(7).trim();
-    } else if (line.includes(".localdev") && line.includes("# port:")) {
-      let parts = line.split(" ").filter(Boolean);
-      let ip = parts[0];
-      let domainPart = parts[1];
-      let portPart = parts[parts.length - 1];
-      let portMatch = portPart.match(/port:(\d+)/);
+function logger(...args: Array<any>): void {
+  console.log(...args);
+}
 
-      if (portMatch) {
-        let domain = domainPart.trim();
-        let port = parseInt(portMatch[1], 10);
-        let note = currentNote;
-
-        entries.push({
-          id: currentID,
-          domain,
-          port,
-          note,
-          targetIP: ip,
-        });
-        currentNote = ""; // Reset the note after it's used
-        currentID = NaN;
-      }
-    }
+function createDebug(namespace: string): Logger {
+  let shouldLog = false;
+  let debug;
+  try {
+    debug = process.env.DEBUG || "";
+  } catch {
+    debug = "";
   }
-
-  return entries;
+  if (
+    debug === namespace
+    || debug.startsWith(namespace)
+    || namespace.startsWith(debug)
+    || debug === "*"
+  ) {
+    shouldLog = true;
+  }
+  if (!shouldLog) {
+    return noop;
+  }
+  return logger;
 }
 
 let initialHostsFile = await Bun.file(`/etc/hosts`).text();
@@ -137,6 +124,8 @@ if (process.env.NODE_ENV === "development") {
 
 let dashboardProc = Bun.spawn({ cmd });
 
+let debug = createDebug("localdev");
+
 let server = Bun.serve({
   port: 80,
   async fetch(request) {
@@ -152,7 +141,7 @@ let server = Bun.serve({
     ) {
       let url = new URL(request.url);
       url.port = matchingDomain.port.toString();
-      console.log(`Redirecting to ${url}`);
+      debug(`Redirecting to ${url}`);
 
       let resp = await fetch(url.toString(), request);
       // copy the response headers over
@@ -168,7 +157,7 @@ let server = Bun.serve({
 
     let path = new URL(request.url).pathname;
     let method = request.method;
-    console.log(`Request: ${method} ${path}`);
+    debug(`Request: ${method} ${path}`);
 
     switch (`${method} ${path}`) {
       case "POST /api/add": {
@@ -199,37 +188,33 @@ let server = Bun.serve({
         Bun.write(`/etc/hosts`, initialHostsFile);
         return new Response(`Added ${data.domain}`);
       }
-      // case "POST /api/update": {
-      //   let data = await request.json();
-      //   if (!data.id) {
-      //     return new Response(`Invalid data:\n\n${JSON.stringify(data, null, 2)}`, {
-      //       status: 500,
-      //     });
-      //   }
-      //   db.query("update domains set domain = $domain, port = $port, targetIP = $targetIP, note = $note where id = $id")
-      //     .run({
-      //       $id: data.id,
-      //       $domain: data.domain,
-      //       $port: data.port,
-      //       $targetIP: data.targetIP,
-      //       $note: data.note || "",
-      //     });
+      case "POST /api/update": {
+        let data = await request.json();
+        if (!data.id) {
+          return new Response(`Invalid data:\n\n${JSON.stringify(data, null, 2)}`, {
+            status: 500,
+          });
+        }
+        let existing = db.query("select * from domains where id = $id").get({ $id: data.id }) as unknown as
+          | Domain
+          | undefined;
+        if (!existing) {
+          return new Response(`Domain with ID ${data.id} not found!`, { status: 404 });
+        }
+        db.query("update domains set domain = $domain, port = $port, targetIP = $targetIP, note = $note where id = $id")
+          .run({
+            $id: data.id,
+            $domain: data.domain || existing.domain,
+            $port: data.port ? Number(data.port) : existing.port,
+            $targetIP: data.targetIP || existing.targetIP,
+            $note: data.note || existing.note,
+          });
 
-      //   let updatedLines = initialHostsFile.split("\n");
-      //   for (let line of updatedLines) {
-      //   }
-      //   let updatedHostsFile = "";
-      //   let entries = parseDSL(initialHostsFile);
-      //   for (let entry of entries) {
-      //     if (entry.domain === data.domain) {
-      //       updatedHostsFile += `${data.targetIP}  ${data.domain}.localdev # port:${data.port}\n`;
-      //     } else {
-      //       updatedHostsFile += `${entry.targetIP}  ${entry.domain}.localdev # port:${entry.port}\n`;
-      //     }
-      //   }
-      //   // Bun.write(`/etc/hosts`, updatedHostsFile);
-      //   return new Response(`Updated ${data.domain}`);
-      // }
+        let updatedHostFile = updateHostsFile(initialHostsFile, data, existing);
+
+        Bun.write(`/etc/hosts`, updatedHostFile);
+        return new Response(`Updated ${data.domain}`);
+      }
       case "GET /api/reset": {
         db.query("delete from domains").run();
         server.stop(true);
@@ -242,7 +227,7 @@ let server = Bun.serve({
       }
       default: {
         if (matchingDomain && matchingDomain.domain === "dashboard.localdev") {
-          console.log(`Redirecting to dashboard (http://127.0.0.1:42069)`);
+          debug(`Redirecting to dashboard (http://127.0.0.1:42069)`);
           request.headers.append("x-redirected", "true");
           let targetURL = new URL(request.url);
           targetURL.protocol = "http";

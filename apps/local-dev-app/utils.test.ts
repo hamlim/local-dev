@@ -43,8 +43,20 @@ test("updateHostsFile should correctly update the hosts file", () => {
   let result = updateHostsFile(input, updates, existing);
 
   expect(parseDSL(result)).toEqual([
-    { id: 2, domain: "sub2.localdev", port: 9090, note: "Notes...\nmore lines here", targetIP: "192.168.1.2" },
-    { id: 1, domain: "sub1.localdev", port: 8888, note: "Some notes here", targetIP: "192.168.1.1" },
+    {
+      id: 2,
+      domain: "sub2.localdev",
+      port: 9090,
+      note: "Notes...\nmore lines here",
+      targetIP: "192.168.1.2",
+    },
+    {
+      id: 1,
+      domain: "sub1.localdev",
+      port: 8888,
+      note: "Some notes here",
+      targetIP: "192.168.1.1",
+    },
   ]);
 });
 
@@ -71,7 +83,19 @@ test("updateHostsFile should correctly update the hosts file", () => {
   let result = updateHostsFile(input, updates, existing);
 
   expect(parseDSL(result)).toEqual([
-    { id: 2, domain: "sub2.localdev", port: 9090, note: "Notes...\nmore lines here", targetIP: "192.168.1.2" },
-    { id: 1, domain: "newsub1.localdev", port: 8888, note: "Some\nnotes\nhere\n", targetIP: "192.168.1.1" },
+    {
+      id: 2,
+      domain: "sub2.localdev",
+      port: 9090,
+      note: "Notes...\nmore lines here",
+      targetIP: "192.168.1.2",
+    },
+    {
+      id: 1,
+      domain: "newsub1.localdev",
+      port: 8888,
+      note: "Some\nnotes\nhere\n",
+      targetIP: "192.168.1.1",
+    },
   ]);
 });

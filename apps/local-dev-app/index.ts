@@ -4,7 +4,10 @@ import { parseDSL, updateHostsFile } from "./utils";
 
 let db = new Database("./domains.db");
 
-function comment(_str: TemplateStringsArray, ..._replacements: Array<any>) {}
+function comment(
+  _str: TemplateStringsArray,
+  ..._replacements: Array<unknown>
+) {}
 
 comment`
 # Localdev:
@@ -27,27 +30,27 @@ The hosts file syntax is as follows:
 ~~~
 `;
 
-type Logger = (...args: Array<any>) => void;
+type Logger = (...args: Array<unknown>) => void;
 
 function noop() {}
 
-function logger(...args: Array<any>): void {
+function logger(...args: Array<unknown>): void {
   console.log(...args);
 }
 
 function createDebug(namespace: string): Logger {
   let shouldLog = false;
-  let debug;
+  let debug: string;
   try {
     debug = process.env.DEBUG || "";
   } catch {
     debug = "";
   }
   if (
-    debug === namespace
-    || debug.startsWith(namespace)
-    || namespace.startsWith(debug)
-    || debug === "*"
+    debug === namespace ||
+    debug.startsWith(namespace) ||
+    namespace.startsWith(debug) ||
+    debug === "*"
   ) {
     shouldLog = true;
   }
@@ -80,7 +83,9 @@ try {
       if (entry.domain === "dashboard.localdev") {
         hasDashboardConfigured = true;
       }
-      db.query("insert into domains (id, domain, port, targetIP, note) values ($id, $domain, $port, $targetIP, $note)")
+      db.query(
+        "insert into domains (id, domain, port, targetIP, note) values ($id, $domain, $port, $targetIP, $note)",
+      )
         // @ts-expect-error
         .run({
           $domain: entry.domain,
@@ -99,14 +104,15 @@ try {
       targetIP: "127.0.0.1",
       id: 0,
     };
-    db.query("insert into domains (id, domain, port, targetIP, note) values ($id, $domain, $port, $targetIP, $note)")
-      .run({
-        $domain: dashboard.domain,
-        $port: dashboard.port,
-        $targetIP: dashboard.targetIP,
-        $note: dashboard.note,
-        $id: dashboard.id,
-      });
+    db.query(
+      "insert into domains (id, domain, port, targetIP, note) values ($id, $domain, $port, $targetIP, $note)",
+    ).run({
+      $domain: dashboard.domain,
+      $port: dashboard.port,
+      $targetIP: dashboard.targetIP,
+      $note: dashboard.note,
+      $id: dashboard.id,
+    });
     await Bun.write(
       `/etc/hosts`,
       `${initialHostsFile}\n# localdev::<${dashboard.id}>\n# note: ${dashboard.note}\n${dashboard.targetIP} ${dashboard.domain} # port:${dashboard.port}`,
@@ -129,15 +135,19 @@ let debug = createDebug("localdev");
 let server = Bun.serve({
   port: 80,
   async fetch(request) {
-    let host = request.headers.get("host")!;
+    let host = request.headers.get("host") || "";
 
-    let configuredDomains = db.query<Domain, any>("select * from domains").all();
+    let configuredDomains = db
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      .query<Domain, any>("select * from domains")
+      .all();
 
-    let matchingDomain = configuredDomains.find(d => host.includes(d.domain));
+    let matchingDomain = configuredDomains.find((d) => host.includes(d.domain));
 
     if (
-      matchingDomain
-      && (matchingDomain.domain !== "dashboard.localdev" && request.headers.get("x-redirected") !== "true")
+      matchingDomain &&
+      matchingDomain.domain !== "dashboard.localdev" &&
+      request.headers.get("x-redirected") !== "true"
     ) {
       let url = new URL(request.url);
       url.port = matchingDomain.port.toString();
@@ -162,10 +172,18 @@ let server = Bun.serve({
     switch (`${method} ${path}`) {
       case "POST /api/add": {
         let data = await request.json();
-        if (!data.domain || !data.port || isNaN(data.port) || !data.targetIP) {
-          return new Response(`Invalid data:\n\n${JSON.stringify(data, null, 2)}`, {
-            status: 500,
-          });
+        if (
+          !data.domain ||
+          !data.port ||
+          Number.isNaN(data.port) ||
+          !data.targetIP
+        ) {
+          return new Response(
+            `Invalid data:\n\n${JSON.stringify(data, null, 2)}`,
+            {
+              status: 500,
+            },
+          );
         }
         let currDomains = db.query("select * from domains").all();
         db.query(
@@ -191,24 +209,30 @@ let server = Bun.serve({
       case "POST /api/update": {
         let data = await request.json();
         if (!data.id) {
-          return new Response(`Invalid data:\n\n${JSON.stringify(data, null, 2)}`, {
-            status: 500,
-          });
+          return new Response(
+            `Invalid data:\n\n${JSON.stringify(data, null, 2)}`,
+            {
+              status: 500,
+            },
+          );
         }
-        let existing = db.query("select * from domains where id = $id").get({ $id: data.id }) as unknown as
-          | Domain
-          | undefined;
+        let existing = db
+          .query("select * from domains where id = $id")
+          .get({ $id: data.id }) as unknown as Domain | undefined;
         if (!existing) {
-          return new Response(`Domain with ID ${data.id} not found!`, { status: 404 });
-        }
-        db.query("update domains set domain = $domain, port = $port, targetIP = $targetIP, note = $note where id = $id")
-          .run({
-            $id: data.id,
-            $domain: data.domain || existing.domain,
-            $port: data.port ? Number(data.port) : existing.port,
-            $targetIP: data.targetIP || existing.targetIP,
-            $note: data.note || existing.note,
+          return new Response(`Domain with ID ${data.id} not found!`, {
+            status: 404,
           });
+        }
+        db.query(
+          "update domains set domain = $domain, port = $port, targetIP = $targetIP, note = $note where id = $id",
+        ).run({
+          $id: data.id,
+          $domain: data.domain || existing.domain,
+          $port: data.port ? Number(data.port) : existing.port,
+          $targetIP: data.targetIP || existing.targetIP,
+          $note: data.note || existing.note,
+        });
 
         let updatedHostFile = updateHostsFile(initialHostsFile, data, existing);
 
@@ -244,7 +268,9 @@ let server = Bun.serve({
             statusText: resp.statusText,
           });
         }
-        return new Response(`Failed to route to requested host!`, { status: 500 });
+        return new Response(`Failed to route to requested host!`, {
+          status: 500,
+        });
       }
     }
   },

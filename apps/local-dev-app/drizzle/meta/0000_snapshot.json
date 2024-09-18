@@ -39,16 +39,12 @@
       "indexes": {
         "local_domains_domain_unique": {
           "name": "local_domains_domain_unique",
-          "columns": [
-            "domain"
-          ],
+          "columns": ["domain"],
           "isUnique": true
         },
         "local_domains_port_unique": {
           "name": "local_domains_port_unique",
-          "columns": [
-            "port"
-          ],
+          "columns": ["port"],
           "isUnique": true
         }
       },

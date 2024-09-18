@@ -4,7 +4,9 @@ import { Button } from "~/components/ui/button";
 import { loadDomains } from "~/lib/dataloader";
 import { cn } from "~/lib/utils";
 
-export default async function Sidebar({ params }: { params?: { domainID: string } }) {
+export default async function Sidebar({
+  params,
+}: { params?: { domainID: string } }) {
   let domains = await loadDomains();
 
   return (
@@ -26,8 +28,9 @@ export default async function Sidebar({ params }: { params?: { domainID: string 
                 variant="outline"
                 className={cn(
                   "flex w-full items-center justify-between rounded-md px-4 py-2 text-left hover:bg-muted",
-                  // @ts-expect-error
-                  params?.domainID == id && "border-primary border-2",
+                  params?.domainID &&
+                    Number(params.domainID) === id &&
+                    "border-primary border-2",
                 )}
                 asChild
               >
@@ -36,7 +39,9 @@ export default async function Sidebar({ params }: { params?: { domainID: string 
                     <GlobeIcon className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <div className="font-medium">{domain}</div>
-                      <div className="text-xs text-muted-foreground">Proxies to :{port}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Proxies to :{port}
+                      </div>
                     </div>
                   </div>
                   <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />

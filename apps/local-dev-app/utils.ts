@@ -4,13 +4,13 @@ export function parseDSL(input: string): Array<Domain> {
   let lines = input.split("\n");
   let entries: Array<Domain> = [];
   let currentNote = "";
-  let currentID = NaN;
+  let currentID = Number.NaN;
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
 
     if (line.startsWith("# localdev::")) {
-      currentID = parseInt(line.substring(12), 10);
+      currentID = Number.parseInt(line.substring(12), 10);
     } else if (line.startsWith("# note:")) {
       if (currentNote.length > 0) {
         currentNote += "\n";
@@ -25,7 +25,7 @@ export function parseDSL(input: string): Array<Domain> {
 
       if (portMatch) {
         let domain = domainPart.trim();
-        let port = parseInt(portMatch[1], 10);
+        let port = Number.parseInt(portMatch[1], 10);
         let note = currentNote;
 
         entries.push({
@@ -36,7 +36,7 @@ export function parseDSL(input: string): Array<Domain> {
           targetIP: ip,
         });
         currentNote = ""; // Reset the note after it's used
-        currentID = NaN;
+        currentID = Number.NaN;
       }
     }
   }
@@ -68,9 +68,9 @@ export function updateHostsFile(
         }
       }
       updatedLines.push(
-        `${updates.targetIP || existing.targetIP}  ${updates.domain || existing.domain} # port:${
-          updates.port || existing.port
-        }`,
+        `${updates.targetIP || existing.targetIP}  ${
+          updates.domain || existing.domain
+        } # port:${updates.port || existing.port}`,
       );
     } else if (within && !line.includes("# localdev::")) {
       lines[i] = "";

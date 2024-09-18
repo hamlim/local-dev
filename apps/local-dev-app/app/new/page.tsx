@@ -37,7 +37,12 @@ export default async function NewDomain() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="targetIP">Target Port</Label>
-              <Input id="targetIP" name="targetIP" type="string" defaultValue="127.0.0.1" />
+              <Input
+                id="targetIP"
+                name="targetIP"
+                type="string"
+                defaultValue="127.0.0.1"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="port">Target Port</Label>

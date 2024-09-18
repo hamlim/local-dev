@@ -9,16 +9,23 @@ async function loadDomainsImpl(): Promise<Array<Domain>> {
   return domains;
 }
 
-export let loadDomains = unstable_cache(loadDomainsImpl, ["domains"], { tags: ["domains"] });
+export let loadDomains = unstable_cache(loadDomainsImpl, ["domains"], {
+  tags: ["domains"],
+});
 
 async function loadDomainImpl(domainID: number): Promise<Domain | undefined> {
   let domains = await loadDomains();
   return domains.find((domain) => domain.id === domainID);
 }
 
-export let loadDomain = unstable_cache(loadDomainImpl, ["domain"], { tags: ["domain"] });
+export let loadDomain = unstable_cache(loadDomainImpl, ["domain"], {
+  tags: ["domain"],
+});
 
-export async function updateDomain(domainID: number, data: Partial<Domain>): Promise<void> {
+export async function updateDomain(
+  domainID: number,
+  data: Partial<Domain>,
+): Promise<void> {
   await fetch("http://dashboard.localdev/api/update", {
     method: "POST",
     body: JSON.stringify({

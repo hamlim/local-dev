@@ -1,3 +1,4 @@
+import { unstable_noStore } from "next/cache";
 import { notFound } from "next/navigation";
 import { CheckIcon, TrashIcon } from "~/components/icons";
 import { Button } from "~/components/ui/button";
@@ -6,7 +7,10 @@ import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { loadDomain, updateDomain } from "~/lib/dataloader";
 
-export default async function EditDomain({ params: { domainID } }: { params: { domainID: string } }) {
+export default async function EditDomain({
+  params: { domainID },
+}: { params: { domainID: string } }) {
+  unstable_noStore();
   let domain = await loadDomain(Number(domainID));
 
   if (!domain) {
@@ -44,15 +48,30 @@ export default async function EditDomain({ params: { domainID } }: { params: { d
           <div className="grid gap-6">
             <div className="grid gap-2">
               <Label htmlFor="domain">Domain</Label>
-              <Input id="domain" name="domain" type="text" defaultValue={domain?.domain} />
+              <Input
+                id="domain"
+                name="domain"
+                type="text"
+                defaultValue={domain?.domain}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="targetIP">Target IP:</Label>
-              <Input id="targetIP" name="targetIP" type="string" defaultValue={domain?.targetIP} />
+              <Input
+                id="targetIP"
+                name="targetIP"
+                type="string"
+                defaultValue={domain?.targetIP}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="port">Target Port</Label>
-              <Input id="port" name="port" type="number" defaultValue={domain?.port} />
+              <Input
+                id="port"
+                name="port"
+                type="number"
+                defaultValue={domain?.port}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes</Label>
